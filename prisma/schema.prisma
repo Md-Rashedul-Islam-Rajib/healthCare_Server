@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id                  String      @id @default(uuid())
+  email               String      @unique
+  password            String
+  role                UserRole
+  needPasswordChange  Boolean     @default(true)
+  status              Status      @default(ACTIVE)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  admin               Admin?
+  doctor              Doctor?
+  patient             Patient?
+
+  @@map("users")
+  
+}
+
+model Admin {
+  id                  String      @id @default(uuid())
+  name                String
+  email               String      @unique
+  profilePhoto        String?
+  contactNumber       String
+  isDeleted           Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  user                User        @relation(fields: [email], references: [email])
+
+  @@map("admins")
+}
+
+model Doctor {
+  id                  String      @id @default(uuid())
+  name                String
+  email               String      @unique
+  profilePhoto        String?
+  contactNumber       String
+  address             String?
+  registrationNumber  String
+  appointmentFee      Int
+  experience          Int         @default(0)
+  gender              Gender
+  qualification       String
+  currentWorkingPlace String
+  designation         String
+  averageRating       Float
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  user                User         @relation(fields: [email],references: [email])
+  doctorSpecialties        DoctorSpecialties[]
+
+  @@map("doctors")
+}
+
+model Patient {
+  id                  String      @id @default(uuid())
+  name                String
+  email               String      @unique
+  profilePhoto        String?
+  contactNumber       String
+  address             String?
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  user                User         @relation(fields: [email],references: [email])
+
+  @@map("patients")
+}
+
+model Specialties {
+  id                 String        @id @default(uuid())
+  title              String
+  icon               String
+  doctorSpecialties DoctorSpecialties[]
+
+  @@map("specialties")
+}
+
+
+model DoctorSpecialties {
+  specialtiesId          String
+  specialties            Specialties  @relation(fields: [specialtiesId],references: [id])
+  doctorId                String
+  doctor                  Doctor        @relation(fields: [doctorId],references: [id])
+
+
+  @@id([specialtiesId,doctorId])
+  @@map("doctor_specialties")
+}
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Status {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DOCTOR
+  PATIENT
+}
