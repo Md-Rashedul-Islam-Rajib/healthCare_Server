@@ -18,4 +18,16 @@ export class SpecialtiesService {
     
         return result;
       }
+
+  static async getAllSpecialties() {
+    const result = await prisma.specialties.findMany();
+    return result;
+      }
+
+  static async deleteSpecialties(id: string) {
+    const result = await prisma.specialties.delete({
+      where: {id}
+    })
+    return result;
+  }
 }

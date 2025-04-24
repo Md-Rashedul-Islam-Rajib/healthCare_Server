@@ -1,4 +1,4 @@
-import { Admin, PrismaClient, Status } from "@prisma/client"
+import { Admin, PrismaClient } from "@prisma/client"
 import { adminFilters } from "./admin.utils";
 import { paginationBuilder } from "../../../utilities/paginationbuilder";
 import { TAdminFilterParam } from "./admin.types";
