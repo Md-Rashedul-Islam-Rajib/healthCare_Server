@@ -25,5 +25,6 @@ export const searchFields = [
   "qualification",
   "currentWorkingPlace",
   "designation",
+  "specialties"
 ];
 export const doctorPaginationOption = ["page", "limit", "sortBy", "sortOrder"];

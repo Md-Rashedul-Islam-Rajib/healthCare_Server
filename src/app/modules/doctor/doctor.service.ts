@@ -18,6 +18,13 @@ export class DoctorService {
         options.sortBy && options.sortOrder
           ? { [options.sortBy]: options.sortOrder }
           : { createdAt: "desc" },
+      include: {
+        doctorSpecialties: {
+          include: {
+            specialties:true
+          }
+        }
+      }
     });
 
     const totalCount = await prisma.doctor.count({ where: filterOptions });
@@ -29,45 +36,82 @@ export class DoctorService {
       },
       data: result,
     };
-    };
-    
-    static getSingleDoctor = async (id: string): Promise<Doctor | null> => {
-        const result = await prisma.doctor.findUnique({
-            where: {id,isDeleted:false}
-        })
-        return result;
-    }
+  };
 
-    static updateDoctor = async (id: string, payload: Partial<Doctor>): Promise<Doctor | null> => {
-        const result = await prisma.doctor.update({
-            where: { id, isDeleted: false },
-            data: payload
-        })
-        return result;
-    }
+  static getSingleDoctor = async (id: string): Promise<Doctor | null> => {
+    const result = await prisma.doctor.findUnique({
+      where: { id, isDeleted: false },
+    });
+    return result;
+  };
 
-    static deleteDoctor = async (id: string): Promise<Doctor | null> => {
-        // ? soft delete
-        //    const result = await prisma.$transaction(async (transaction) => {
-        //      const doctorDeletedData = await transaction.doctor.update({
-        //          where: { id,isDeleted:false },
-        //          data: {isDeleted:true}
-        //      });
-        //      const userDeletedData = await transaction.user.update({
-        //        where: { email: doctorDeletedData.email },
-        //        data: { status: Status.DELETED },
-        //      });
-        //      return doctorDeletedData;
-        //    });
-        const result = await prisma.$transaction(async (transaction) => {
-          const doctorDeletedData = await transaction.doctor.delete({
-            where: { id },
+  static updateDoctor = async (id: string, payload: any) => {
+    const { specialties, ...rest } = payload;
+    await prisma.$transaction(async (transaction) => {
+      await transaction.doctor.update({
+        where: { id, isDeleted: false },
+        data: rest,
+      });
+
+      if (specialties && specialties.length > 0) {
+        const deleteSpecialties = specialties.filter(
+          (specialty: any) => specialty.isDeleted
+        );
+        for (const specialty of deleteSpecialties) {
+          await transaction.doctorSpecialties.deleteMany({
+            where: {
+              doctorId: id,
+              specialtiesId: specialty.specialtiesId,
+            },
           });
-          const userDeletedData = await transaction.user.delete({
-            where: { email: doctorDeletedData.email },
-          });
-          return doctorDeletedData;
-        });
-        return result;
-      };
+        }
+
+        const addSpecialties = specialties.filter((specialty:any) => !specialty.isDeleted);
+        for (const specialty of addSpecialties) {
+          await transaction.doctorSpecialties.create({
+            data: {
+              doctorId: id,
+              specialtiesId: specialty.specialtiesId
+            }
+          })
+        }
+      }
+    });
+
+    const result = await prisma.doctor.findUnique({
+      where: { id },
+      include: {
+        doctorSpecialties: {
+          include: {specialties:true}
+        }
+      }
+    })
+
+    return result;
+  };
+
+  static deleteDoctor = async (id: string): Promise<Doctor | null> => {
+    // ? soft delete
+    //    const result = await prisma.$transaction(async (transaction) => {
+    //      const doctorDeletedData = await transaction.doctor.update({
+    //          where: { id,isDeleted:false },
+    //          data: {isDeleted:true}
+    //      });
+    //      const userDeletedData = await transaction.user.update({
+    //        where: { email: doctorDeletedData.email },
+    //        data: { status: Status.DELETED },
+    //      });
+    //      return doctorDeletedData;
+    //    });
+    const result = await prisma.$transaction(async (transaction) => {
+      const doctorDeletedData = await transaction.doctor.delete({
+        where: { id },
+      });
+      const userDeletedData = await transaction.user.delete({
+        where: { email: doctorDeletedData.email },
+      });
+      return doctorDeletedData;
+    });
+    return result;
+  };
 }

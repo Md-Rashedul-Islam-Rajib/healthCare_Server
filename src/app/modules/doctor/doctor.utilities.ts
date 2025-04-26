@@ -6,7 +6,7 @@ import { TDoctorFilterParams } from "./doctor.types";
 
 export const doctorFilters = (params?: TDoctorFilterParams): Prisma.DoctorWhereInput | undefined => {
     if (!params) return undefined;
-    const { searchTerm, ...exactFilters } = params;
+    const { searchTerm,specialties, ...exactFilters } = params;
 
     const where: Prisma.DoctorWhereInput = {};
     
@@ -27,6 +27,39 @@ export const doctorFilters = (params?: TDoctorFilterParams): Prisma.DoctorWhereI
             andConditions.push({[key]:value})
         }
     }
+
+    if (specialties && specialties.length > 0) {
+        andConditions.push({
+            doctorSpecialties: {
+                some: {
+                    specialties: {
+                        title: {
+                            contains: specialties,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            }
+        })
+    }
+    // if (specialties && specialties.length > 0) {
+    //   andConditions.push({
+    //     OR: specialties.map((specialty: string) => ({
+    //       doctorSpecialties: {
+    //         some: {
+    //           specialties: {
+    //             title: {
+    //               contains: specialty,
+    //               mode: "insensitive",
+    //             },
+    //           },
+    //         },
+    //       },
+    //     })),
+    //   });
+    // }
+
+
     andConditions.push({ isDeleted: false })
     if (andConditions.length) {
         where.AND = andConditions;
