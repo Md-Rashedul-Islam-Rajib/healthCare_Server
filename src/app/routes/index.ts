@@ -9,29 +9,33 @@ const router: Router = Router();
 
 const allRoutes = [
   {
-    path: '/user',
+    path: "/user",
     route: UserRouter,
-    },
-    {
-        path: '/admin',
-        route: AdminRouter
-  }, {
-      path: "/doctor",
-    route: DoctorRoutes
   },
   {
-    path: '/auth',
-    route: AuthRouter
+    path: "/admin",
+    route: AdminRouter,
   },
   {
-    path:'/specialties',
-    route: SpecialtiesRoutes
-  }
-  
+    path: "/doctor",
+    route: DoctorRoutes,
+  },
+  {
+    path: "/patient",
+    route: DoctorRoutes,
+  },
+  {
+    path: "/auth",
+    route: AuthRouter,
+  },
+  {
+    path: "/specialties",
+    route: SpecialtiesRoutes,
+  },
 ];
 
 allRoutes.forEach((singleRoute) =>
-  router.use(singleRoute.path!, singleRoute.route!),
+  router.use(singleRoute.path!, singleRoute.route!)
 );
 
 export default router;
