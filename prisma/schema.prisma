@@ -58,6 +58,7 @@ model Doctor {
   updatedAt           DateTime            @updatedAt
   user                User                @relation(fields: [email], references: [email])
   doctorSpecialties   DoctorSpecialties[]
+  doctorSchedules     DoctorSchedules[]
 
   @@map("doctors")
 }
@@ -69,18 +70,18 @@ model PatientHealthData {
   gender              Gender
   dateOfBirth         DateTime
   bloodGroup          BloodGroup
-  hasAllergies        Boolean
-  hasDiabetes         Boolean
+  hasAllergies        Boolean?      @default(false)
+  hasDiabetes         Boolean?      @default(false)
   height              String
   weight              String
-  smokingStatus       Boolean
-  dietaryPreferences  String
-  pregnancyStatus     Boolean
-  mentalHealthHistory String
-  immunizationStatus  String
-  hasPastSurgeries    Boolean
-  recentAnxiety       Boolean
-  recentDepression    Boolean
+  smokingStatus       Boolean?      @default(false)
+  dietaryPreferences  String?
+  pregnancyStatus     Boolean?      @default(false)
+  mentalHealthHistory String?
+  immunizationStatus  String?
+  hasPastSurgeries    Boolean?      @default(false)
+  recentAnxiety       Boolean?      @default(false)
+  recentDepression    Boolean?      @default(false)
   maritalStatus       MaritalStatus
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -103,6 +104,29 @@ model Patient {
   medicalReport     MedicalReport[]
 
   @@map("patients")
+}
+
+model Schedule {
+  id              String            @id @default(uuid())
+  startDateTime   DateTime
+  endDateTime     DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  doctorSchedules DoctorSchedules[]
+
+  @@map("schedules")
+}
+
+model DoctorSchedules {
+  doctorId      String
+  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  scheduleId    String
+  schedule      Schedule @relation(fields: [scheduleId], references: [id])
+  isBooked      Boolean  @default(false)
+  appointmentId String
+
+  @@id([doctorId, scheduleId])
+  @@map("doctor_schedules")
 }
 
 model MedicalReport {

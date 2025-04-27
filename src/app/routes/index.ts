@@ -4,6 +4,7 @@ import AdminRouter from "../modules/admin/admin.route";
 import AuthRouter from "../modules/auth/auth.route";
 import SpecialtiesRoutes from "../modules/specialties/specialties.route";
 import DoctorRoutes from "../modules/doctor/doctor.route";
+import ScheduleRoutes from "../modules/schedule/schedule.route";
 
 const router: Router = Router();
 
@@ -32,6 +33,10 @@ const allRoutes = [
     path: "/specialties",
     route: SpecialtiesRoutes,
   },
+  {
+    path: "/schedules",
+    route: ScheduleRoutes
+  }
 ];
 
 allRoutes.forEach((singleRoute) =>

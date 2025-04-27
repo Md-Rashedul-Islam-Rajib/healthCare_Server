@@ -40,22 +40,73 @@ export class PatientService {
 
     static getSinglePatient = async (id: string) => {
         const result = await prisma.patient.findUnique({
-            where: {id,isDeleted:false}
+            where: { id, isDeleted: false },
+            include: {
+                patientHealthData: true,
+                medicalReport:true
+            }
         })
         return result;
     }
 
     static updatePatient = async (id: string, payload: any) => {
-        
+        const { PatientHealthData, medicalReport, ...rest } = payload;
+        const patientInfo = await prisma.patient.findUniqueOrThrow({
+            where: {id}
+        })
+
+        await prisma.$transaction(async (tra) => {
+            const patientUpdatedData = await tra.patient.update({
+                where: {id,isDeleted:false},
+                data: rest,
+                include: {
+                    patientHealthData: true,
+                    medicalReport:true
+                }
+            })
+
+            if (PatientHealthData) {
+            await tra.patientHealthData.upsert({
+                where: { patientId: patientInfo.id },
+                update: PatientHealthData,
+                create: {...PatientHealthData, patientId: patientInfo.id}
+            })    
+            }
+
+            if (medicalReport) {
+                await tra.medicalReport.create({
+                    data: {...medicalReport,patientId: patientInfo.id}})
+            }
+            
+        })
+        const result = await prisma.patient.findUnique({
+            where: { id },
+            include: {
+                patientHealthData: true,
+                medicalReport:true
+            }
+        })
+        return result;
+
     }
 
     static deletePatient = async (id: string) => {
         const result = await prisma.$transaction(async (tra) => {
+           // ! use these for hard delete 
+            // await tra.medicalReport.deleteMany({
+            //     where: {patientId: id}
+            // })
+
+            // await tra.patientHealthData.delete({
+            //     where: {patientId:id}
+            // })
+            
             const patientDeletedData = await tra.patient.update({
                 where: { id, isDeleted: false },
                 data:{isDeleted:true}
             })
-            const userDeletedData = await tra.user.update({
+            
+            await tra.user.update({
                 where: { email: patientDeletedData.email },
                 data: {status:"DELETED"}
             })
