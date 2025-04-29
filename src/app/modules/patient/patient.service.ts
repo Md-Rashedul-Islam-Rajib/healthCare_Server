@@ -1,10 +1,11 @@
+import { PatientFilterParams } from './patient.types';
 import { PrismaClient } from "@prisma/client";
 import { paginationBuilder } from "../../../utilities/paginationbuilder";
 import { patientFilters } from "./patient.utilities";
 
 const prisma = new PrismaClient();
 export class PatientService {
-    static getAllPatients = async (params?: any, options?: any) => {
+    static getAllPatients = async (params?: PatientFilterParams, options?: any) => {
         const { limit, page, skip } = paginationBuilder(options);
         const filterOptions = patientFilters(params);
         const result = await prisma.patient.findMany({

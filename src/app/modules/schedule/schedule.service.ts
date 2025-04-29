@@ -1,8 +1,70 @@
 import { PrismaClient } from "@prisma/client";
 import { addHours, addMinutes, format } from "date-fns";
-import { Slot } from "./schedule.types";
+import { ScheduleFilterParams, Slot } from "./schedule.types";
+import { paginationBuilder } from "../../../utilities/paginationbuilder";
+import { scheduleFilters } from "./schedule.utilities";
 const prisma = new PrismaClient();
 export class ScheduleService {
+  static getAllSchedules = async (
+    user: any,
+    params?: ScheduleFilterParams,
+    options?: any
+  ) => {
+    const doctorSchedules = await prisma.doctorSchedules.findMany({
+      where: {
+        doctor: {
+          email: user.email,
+        },
+      },
+    });
+
+    const scheduleIds = doctorSchedules.map((schedule) => schedule.scheduleId);
+    const { limit, page, skip } = paginationBuilder(options);
+    const filterOptions = scheduleFilters(params);
+    const result = await prisma.schedule.findMany({
+      where: {
+        ...filterOptions,
+        id: {
+          notIn: scheduleIds,
+        },
+      },
+      skip: page ? skip : undefined,
+      take: limit ? limit : undefined,
+      orderBy:
+        options.sortBy && options.sortOrder
+          ? {
+              [options.sortBy]: options.sortOrder,
+            }
+          : {
+              createdAt: "desc",
+            },
+    });
+
+    const totalCount = await prisma.schedule.count({
+      where: {
+        ...filterOptions,
+        id: {
+          notIn: scheduleIds,
+        },
+      },
+    });
+    return {
+      meta: {
+        page: page || 1,
+        limit: limit || 10,
+        total: totalCount,
+      },
+      data: result,
+    };
+  };
+
+  static async getSingleSchedule(id: string) {
+    const result = await prisma.schedule.findUnique({
+      where: {id}
+    })
+    return result;
+  }
+
   static async createSchedule(payload: any) {
     const { startDate, endDate, startTime, endTime } = payload;
     const startingDate = new Date(startDate);
@@ -66,7 +128,7 @@ export class ScheduleService {
     const intervalMinutes = 30;
     const slots = await prisma.$queryRaw<
       Slot[]
-    >//! with recursive CTEs to generate time slots
+    > //! with recursive CTEs to generate time slots
     `
        /* Step 1: Generate a list of dates from startDate to endDate */
 
@@ -111,19 +173,19 @@ FROM time_slots
 ORDER BY start_time;
 
     `;
-// ! use generate_series to generate time slots
-// `
-//       SELECT 
-//         gs AS "startDateTime",
-//         gs + INTERVAL '${intervalMinutes} minutes' AS "endDateTime"
-//       FROM generate_series(
-//         TIMESTAMP '${startDate} ${startHour}:${startMinute}:00',
-//         TIMESTAMP '${endDate} ${endHour}:${endMinute}:00',
-//         INTERVAL '${intervalMinutes} minutes'
-//       ) AS gs
-//       WHERE EXTRACT(DOW FROM gs) NOT IN (0, 6) /* <== Exclude saturday and sunday */
-//       ORDER BY "startDateTime";
-//     `;
+    // ! use generate_series to generate time slots
+    // `
+    //       SELECT
+    //         gs AS "startDateTime",
+    //         gs + INTERVAL '${intervalMinutes} minutes' AS "endDateTime"
+    //       FROM generate_series(
+    //         TIMESTAMP '${startDate} ${startHour}:${startMinute}:00',
+    //         TIMESTAMP '${endDate} ${endHour}:${endMinute}:00',
+    //         INTERVAL '${intervalMinutes} minutes'
+    //       ) AS gs
+    //       WHERE EXTRACT(DOW FROM gs) NOT IN (0, 6) /* <== Exclude saturday and sunday */
+    //       ORDER BY "startDateTime";
+    //     `;
 
     // Now map the results to the desired format
     const scheduleData = slots.map((slot) => ({
@@ -138,5 +200,12 @@ ORDER BY start_time;
     });
 
     return scheduleData;
+  }
+
+  static async deleteSchedule(id: string) {
+    const result = await prisma.schedule.delete({
+      where: { id }
+    })
+    return result;
   }
 }
